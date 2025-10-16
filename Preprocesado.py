@@ -23,179 +23,126 @@
 # | Número archivo | Polarización | Frecuencia | Pos. inicial | Pos final |
 # |---------------|--------------|------------|--------------|---------------------|
 # | 1 | Directa | 3.1GHz | -190 | +190 |
-# | 2 | Directa | 2.7GHz | +190 | -190 |
-# | 3 | Directa | 2.9GHz | -190 | +190 |
+# | 2 | Directa | 2.9GHz | +190 | -190 |
+# | 3 | Directa | 2.7GHz | -190 | +190 |
 # | 4 | Cruzada | 2.7GHz | -190 | +190 |
 # | 5 | Cruzada | 2.9GHz | +190 | -190 |
 # | 6 | Cruzada | 3.1GHz | -190 | +190 |
 
 # %% [markdown]
-# Vamos a probar el espejado y guardado de archivos
+# Preprocesado de archivos para recortar el angulo extra de 10° por lado y espejar las mediciones con la tornamesa en posición inicial positiva y final negativa.<br>
+# Como el disparo de los instrumentos se hizo a mano me doy un margen de 50° para recortar las mediciónes por desvios de error humano
 
 # %%
 from scripts.sa_data import SAData, load_sa_data
 
 # %%
-data = load_sa_data('./Mediciones/1ra med 31Ghz.DAT')
-
-# %%
-data.plot_time(mag='dB')
-
-# %%
-# Sin desplazamientos
-#fig, ax = data.plot_superposition(mag='dBm')
-
-# Con desplazamientos de 10° en ambos lados
-#fig, ax = data.plot_superposition(mag='dBm', left_shift_deg=10, right_shift_deg=10)
-
-# Solo desplazar lado derecho 15°
-#fig, ax = data.plot_superposition(mag='dBm', right_shift_deg=15)
-
-# Desplazar hacia adentro (negativo)
-fig, ax = data.plot_superposition(mag='dBm', left_shift_deg=10, right_shift_deg=10)
-
-
-# %%
-
-# %%
-
-# %%
-
-# %%
-
-# %%
-
-# %%
-
-# %%
-from scripts.sa_data import SAData, load_sa_data
-
-# %%
-
-# %%
-directa_2_7GHz = load_sa_data('./Mediciones/3ra med 27Ghz.DAT')
-
-# %%
-directa_2_7GHz.plot_polar()
-
-# %%
-piso_ruido         = load_sa_data('./data/File_001_PISO_DE_RUIDO2.DAT')
-biantena_vertical1 = load_sa_data('./data/biantenavertical.DAT')#esta
-biantena_vertical2 = load_sa_data('./data/File_001_biantena_vert.DAT')
-biantena_vertical3 = load_sa_data('./data/2da_medicioon_de_antenavert.DAT')
-
-biantena_horizontal1 = load_sa_data('./data/biantenhorz_001.DAT')#esta
-biantena_horizontal2 = load_sa_data('./data/2da-medicion-horizontal_002.DAT')
-biantena_horizontal3 = load_sa_data('./data/2da-medicion-horizontal_003.DAT')
-
-# %%
-piso_ruido2 = SAData('./data/File_001_PISO_DE_RUIDO2.DAT')
-
-# %%
-piso_ruido.plot_time(mag='dBm', y_limits=(-90, -70), legend=True, savefig='ploteos/piso_ruido.png',
-                    figsize=(12, 3))
-
-# %%
-biantena_vertical1.plot_time(mag='dBm', legend=True, y_limits=(-60, -40), savefig='ploteos/biconica_vertical_1.png')
-biantena_vertical1.plot_polar(mag='dB', legend=True, normalize=True, mag_limits=(-6, 3), savefig='ploteos/biconica_vertical_1_polar.png')
-
-# %%
-biantena_horizontal1.plot_time(mag='dBm', y_limits=(-70, -40), savefig='ploteos/biconica_horizontal_1.png')
-biantena_horizontal1.plot_polar(mag='dB', mag_limits=(-39, 3), legend=True, savefig='ploteos/biconica_horizontal_1_polar.png')
-
-# %%
-biantena_vertical2.plot_time(mag='dBm', y_limits=(-60, -40), savefig='ploteos/biconica_vertical_2.png')
-biantena_vertical2.plot_polar(mag='dBm', mag_limits=(-60, -40), savefig='ploteos/biconica_vertical_2_polar.png')
-
-# %%
-biantena_vertical3.plot_time(mag='dBm', legend=True, y_limits=(-60, -30))
-#biantena_vertical3.plot_polar(mag='dBm', mag_limits=(-60, -30), savefigure='Ploteos/cambio_polarizacion.png')
+medicion_1 = load_sa_data('./Mediciones/Originales/1ra med 31Ghz.DAT')
+medicion_2 = load_sa_data('./Mediciones/Originales/2da med 29Ghz.DAT')
+medicion_3 = load_sa_data('./Mediciones/Originales/3ra med 27Ghz.DAT')
+medicion_4 = load_sa_data('./Mediciones/Originales/4ta med 27Ghz.DAT')
+medicion_5 = load_sa_data('./Mediciones/Originales/5ta med 29Ghz cruz.DAT')
+medicion_6 = load_sa_data('./Mediciones/Originales/6ta med 31Ghz cruz.DAT')
+medicion_7 = load_sa_data('./Mediciones/Originales/7ma med piso ruido.DAT')
 
 # %% [markdown]
-# Vamos a analizar la polarizaación cruzada. Para esto uso de los datos anteriores la medición en polarización cruzada y derecha
+# ## Medicion 1: Polarizacion directa, secuencia directa, 3.1GHz
 
 # %%
-y = biantena_vertical3.get_y1_data()
-x = biantena_vertical3.get_x_data()
+crop_data_1 = medicion_1.plot_superposition(left_shift_deg=15, right_shift_deg=20)
 
 # %%
-import matplotlib.pyplot as plt
-import numpy as np
-
-# Ejemplo: si no los tenés definidos
-# x = np.linspace(0,100,500)
-# y = -50 + 10*np.sin(np.radians(x))
-
-# Parámetros opcionales
-plot_params = {'linewidth': 1.5, 'label': 'Medición'}
-ax_params = {
-    'title': 'Medicion de polarizacion cruzada',
-    'xlabel': 'Ángulo [°]',
-    'ylabel': 'Potencia [dBm]',
-    'xlim': (min(x), max(x)),
-    'ylim': (-60, -30)
-}
-
-# Crear figura y eje
-fig, ax = plt.subplots(figsize=(8,6))
-
-# Plot principal
-ax.plot(x, y, **plot_params)
-
-# Puntos de interés
-targets = {20: "Polarización cruzada", 60: "Polarización co-polar"}
-for xtarget, label in targets.items():
-    idx = np.argmin(np.abs(x - xtarget))   # índice más cercano a xtarget
-    x_val, y_val = x[idx], y[idx]
-
-    # Línea vertical
-    ax.axvline(x_val, color="red", linestyle="--", alpha=0.7)
-
-    # Flecha + etiqueta con valor
-    ax.annotate(f"{label}\n{y_val:.2f} dBm",
-                xy=(x_val, y_val),            # punto en la curva
-                xytext=(x_val+5, y_val+3),    # posición del texto
-                arrowprops=dict(facecolor="black", arrowstyle="->"),
-                fontsize=11,
-                bbox=dict(boxstyle="round,pad=0.3", fc="w", ec="k", alpha=0.6))
-
-# Configuración de ejes
-ax.set_title(ax_params.get('title', 'Medición'), fontsize=14)
-ax.set_xlabel(ax_params.get('xlabel', 'X'), fontsize=12)
-ax.set_ylabel(ax_params.get('ylabel', 'Y'), fontsize=12)
-
-if 'xlim' in ax_params:
-    ax.set_xlim(ax_params['xlim'])
-if 'ylim' in ax_params:
-    ax.set_ylim(ax_params['ylim'])
-
-ax.grid(True, which='both', linestyle='--', alpha=0.7)
-ax.legend()
-
-# Guardar imagen
-plt.savefig('ploteos/polarizacion_cruzada.png', dpi=300, bbox_inches='tight')
-plt.show()
-
+medicion_1.crop_data(**crop_data_1)
 
 # %%
-biantena_horizontal2.plot_time(mag='dBm')
-#biantena_horizontal2.plot_polar(mag='dBm')
+medicion_1.set_output_filename('directa_3.1GHz')
 
 # %%
-biantena_horizontal3.plot_time(mag='dBm')
-#biantena_horizontal3.plot_polar(mag='dBm')
-
-# %%
-biantena_vertical3.data['y1'].max()
+medicion_1.save_processed_data(output_dir='Mediciones/')
 
 # %% [markdown]
-# # Comparativa para ganancia
-# Voy a superponer dos gráficos para calcular la ganancia
+# ## Medicion 2: Polarizacion directa, secuencia espejada, 2.9GHz
 
 # %%
+crop_data_2 = medicion_2.plot_superposition(left_shift_deg=0, right_shift_deg=45)
 
 # %%
+medicion_2.crop_data(**crop_data_2)
 
 # %%
+medicion_2.mirror_data()
 
 # %%
+medicion_2.set_output_filename('directa_2.9GHz')
+
+# %%
+medicion_2.save_processed_data(output_dir='Mediciones/')
+
+# %% [markdown]
+# ## Medicion 3: Polarizacion directa, secuencia directa, 2.7GHz
+
+# %%
+crop_data_3 = medicion_3.plot_superposition(left_shift_deg=30, right_shift_deg=10)
+
+# %%
+medicion_3.crop_data(**crop_data_3)
+
+# %%
+medicion_3.set_output_filename('directa_2.7GHz')
+
+# %%
+medicion_3.save_processed_data(output_dir='Mediciones/')
+
+# %% [markdown]
+# ## Medicion 4: Polarizacion cruzada, secuencia directa, 2.7GHz
+
+# %%
+crop_data_4 = medicion_4.plot_superposition(left_shift_deg=0, right_shift_deg=40)
+
+# %%
+medicion_4.crop_data(**crop_data_4)
+
+# %%
+medicion_4.set_output_filename('cruzada_2.7GHz')
+
+# %%
+medicion_4.save_processed_data(output_dir='Mediciones/')
+
+# %% [markdown]
+# ## Medicion 5: Polarizacion cruzada, secuencia espejada, 2.9GHz
+
+# %%
+crop_data_5 = medicion_5.plot_superposition(left_shift_deg=15, right_shift_deg=5)
+
+# %%
+medicion_5.crop_data(**crop_data_5)
+
+# %%
+medicion_5.mirror_data()
+
+# %%
+medicion_5.set_output_filename('cruzada_2.9GHz')
+
+# %%
+medicion_5.save_processed_data(output_dir='Mediciones/')
+
+# %% [markdown]
+# ## Medicion 6: Polarizacion cruzada, secuencia directa, 3.1GHz
+
+# %%
+crop_data_6 = medicion_6.plot_superposition(left_shift_deg=10, right_shift_deg=10)
+
+# %%
+medicion_6.crop_data(**crop_data_6)
+
+# %%
+medicion_6.set_output_filename('cruzada_3.1GHz')
+
+# %%
+medicion_6.save_processed_data(output_dir='Mediciones/')
+
+# %% [markdown]
+# ## Medicion 7 Piso de ruido
+
+# %% [markdown]
+# Copio directamente archivo renombrandolo a `piso_ruido.DAT`
