@@ -251,7 +251,7 @@ class PlotMixin:
         return fig, ax
 
     def plot_superposition(self, mag: Literal['dB', 'dBm'] = 'dB', 
-                          left_shift_deg: float = 0.0, right_shift_deg: float = 0.0) -> Tuple[Any, Any, Dict[str, int]]:
+                          left_shift_deg: float = 0.0, right_shift_deg: float = 0.0) -> Dict[str, int]:
         """
         Plot data with mirrored superposition for visualization.
 
@@ -264,9 +264,8 @@ class PlotMixin:
 
         Returns:
         --------
-        Tuple[matplotlib.figure.Figure, matplotlib.axes.Axes, Dict[str, int]]
-            Figure, axes objects, and dictionary with crop indices
-            {'start_index': int, 'end_index': int}
+        Dict[str, int]
+            Dictionary with calculated crop indices {'start_index': int, 'end_index': int}
         """
         # Get original data
         x_data = self.get_x_data()
@@ -357,4 +356,4 @@ class PlotMixin:
             'end_index': end_index
         }
         
-        return fig, ax, crop_info
+        return crop_info

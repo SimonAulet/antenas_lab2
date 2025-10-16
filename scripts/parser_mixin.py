@@ -92,9 +92,13 @@ class ParserMixin:
                     key = parts[0].strip()
                     value = parts[1].strip()
                     
+                    # Almacenar información completa después del primer punto y coma
+                    # Esto preserva las unidades y cualquier información adicional
+                    complete_value = ';'.join(parts[1:]).strip()
+                    
                     # Almacenar solo si no es una línea vacía o de valores
                     if key and value and key != "Values":
-                        self.header_data[key] = value
+                        self.header_data[key] = complete_value
                     
                     # Extraer número de puntos si está disponible
                     if key == "Values":
