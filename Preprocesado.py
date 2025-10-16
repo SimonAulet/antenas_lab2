@@ -39,17 +39,17 @@ from scripts.sa_data import SAData, load_sa_data
 a = load_sa_data('./Mediciones/1ra med 31Ghz.DAT')
 
 # %%
-# Visualizar superposición con desplazamientos
-a.plot_superposition(
-    mag='dBm'
-)
+# Sin desplazamientos
+#fig, ax = a.plot_superposition(mag='dBm')
 
-# Obtener puntos de corte para recortar
-#left_cut = cut_info['left_cut']   # Ej: 187.5
-#right_cut = cut_info['right_cut'] # Ej: 192.3
+# Con desplazamientos de 10° en ambos lados
+fig, ax = a.plot_superposition(mag='dBm', left_shift_deg=10, right_shift_deg=10)
 
-# Usar estos valores para recortar
-#data.crop_data(start_value=left_cut, end_value=right_cut, in_place=True)
+# Solo desplazar lado derecho 15°
+#fig, ax = data.plot_superposition(mag='dBm', right_shift_deg=15)
+
+# Desplazar hacia adentro (negativo)
+#fig, ax = data.plot_superposition(mag='dBm', left_shift_deg=-5, right_shift_deg=-5)
 
 
 # %%

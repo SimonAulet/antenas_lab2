@@ -250,7 +250,8 @@ class PlotMixin:
 
         return fig, ax
 
-    def plot_superposition(self, mag: Literal['dB', 'dBm'] = 'dB') -> Tuple[Any, Any]:
+    def plot_superposition(self, mag: Literal['dB', 'dBm'] = 'dB',
+                          left_shift_deg: float = 0.0, right_shift_deg: float = 0.0) -> Tuple[Any, Any]:
         """
         Plot data with mirrored superposition for visualization.
 
@@ -282,12 +283,19 @@ class PlotMixin:
         left_y = y_data[mid_point:]  # First half y values
         right_y = y_data[:mid_point] # Second half y values
 
-        # Create artificial x-axis for superposition
+        # Calculate shift factors from degrees
+        # Positive shift means the side is "too far", so we need to move it inward
+        left_shift_factor = left_shift_deg / 360.0 if left_shift_deg != 0 else 0
+        right_shift_factor = right_shift_deg / 360.0 if right_shift_deg != 0 else 0
+
+        # Create artificial x-axis for superposition with shifts
         # Left half: goes from center outward to left
         left_x = []
         for i in range(len(left_y)):
             distance_from_center = len(left_y) - i - 1
-            left_x.append(-distance_from_center)
+            # Apply left shift: positive shift moves left side outward (more negative)
+            shifted_distance = distance_from_center + left_shift_factor * len(left_y)
+            left_x.append(-shifted_distance)
 
         # Right half: goes from center outward to right
         right_x = []
@@ -298,7 +306,9 @@ class PlotMixin:
             if n_points % 2 == 0:
                 distance_from_center += 1
 
-            right_x.append(distance_from_center)
+            # Apply right shift: positive shift moves right side outward (more positive)
+            shifted_distance = distance_from_center + right_shift_factor * len(right_y)
+            right_x.append(shifted_distance)
 
         # Create figure
         fig, ax = plt.subplots(figsize=(12, 6))
@@ -308,7 +318,11 @@ class PlotMixin:
         ax.plot(right_x, right_y, 'r-', linewidth=2, label='Right half (mirrored)')
 
         # Configure axes
-        ax.set_title(f'Superposition Visualization - {mag}', fontsize=14)
+        # Create title with shift information
+        title = f'Superposition Visualization - {mag}'
+        if left_shift_deg != 0 or right_shift_deg != 0:
+            title += f'\nLeft shift: {left_shift_deg}°, Right shift: {right_shift_deg}°'
+        ax.set_title(title, fontsize=14)
         ax.set_xlabel('Position from Center', fontsize=12)
         ax.set_ylabel(mag, fontsize=12)
         ax.grid(True, which='both', linestyle='--', alpha=0.7)
