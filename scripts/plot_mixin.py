@@ -12,6 +12,7 @@ class PlotMixin:
 
     Provides methods for visualizing data in different representations:
     - Time domain
+    - Angular domain (degrees)
     - Frequency domain
     - Polar representation
     """
@@ -91,6 +92,111 @@ class PlotMixin:
             ax.set_ylim(ax_params['ylim'])
 
         # Configure logarithmic grid
+        ax.grid(True, which='both', linestyle='--', alpha=0.7)
+
+        # Configure vertical limits if specified (only if not passed via kwargs)
+        if y_limits is not None and 'ylim' not in ax_params:
+            ax.set_ylim(y_limits)
+
+        # Add statistics box if requested
+        if legend:
+            min_val = np.min(y_data)
+            max_val = np.max(y_data)
+            mean_val = np.mean(y_data)
+
+            # Create text with statistics
+            stats_text = f'Min: {min_val:.2f} {mag}\nMax: {max_val:.2f} {mag}\nMean: {mean_val:.2f} {mag}'
+
+            # Add box with statistics
+            ax.text(0.02, 0.98, stats_text, transform=ax.transAxes, fontsize=15,
+                   verticalalignment='top', bbox=dict(boxstyle='round', facecolor='lightsteelblue', alpha=0.9))
+
+        # Improve layout
+        plt.tight_layout()
+
+        # Save figure if filename is specified
+        if savefig:
+            fig.savefig(savefig, bbox_inches='tight', dpi=300)
+
+    def plot_deg(self, mag: Literal['dB', 'dBm'] = 'dB', min_deg: float = 0.0, max_deg: float = 360.0, y_limits: Optional[Tuple[float, float]] = None, savefig: str = '', legend: bool = False, **kwargs):
+        """
+        Plot data in angular domain (degrees).
+
+        Parameters:
+        -----------
+        mag : str, optional
+            Magnitude unit ('dB' or 'dBm'), default 'dB'
+            'dB' uses normalized data (P - max(P))
+            'dBm' uses absolute power in dBm
+        min_deg : float, optional
+            Minimum degree value for x-axis (default: 0.0)
+        max_deg : float, optional
+            Maximum degree value for x-axis (default: 360.0)
+        y_limits : Tuple[float, float], optional
+            Vertical limits for y-axis (min, max). If None, auto-adjusts.
+        savefig : str, optional
+            Filename to save the figure. If empty string, figure is not saved.
+        legend : bool, optional
+            If True, shows a box with statistics (min, max, and mean)
+
+        """
+        # Get x-axis data converted to degrees
+        x_data = self.convert_to_degree(min_deg, max_deg)
+
+        # Get y-axis data and convert to specified unit
+        if mag == 'dB':
+            y_data = self.convert_to_db()
+        elif mag == 'dBm':
+            y_data = self.convert_to_dBm()
+        else:
+            raise ValueError(f"Invalid magnitude unit: {mag}. Use 'dB' or 'dBm'")
+
+        # Create figure and axes
+        fig_kwargs = {'figsize': (10, 6)}
+        # Separate parameters for plt.subplots and ax.plot
+        subplot_params = {}
+        plot_params = {'linewidth': 1.5}
+        ax_params = {}
+
+        # Filter parameters for specific functions
+        for key, value in kwargs.items():
+            if key in ['figsize', 'dpi', 'facecolor', 'edgecolor', 'frameon', 'tight_layout', 'constrained_layout']:
+                fig_kwargs[key] = value
+            elif key in ['color', 'linestyle', 'marker', 'markersize', 'label']:
+                plot_params[key] = value
+            elif key in ['title', 'xlabel', 'ylabel', 'xlim', 'ylim']:
+                ax_params[key] = value
+            else:
+                # Unrecognized parameters are ignored
+                pass
+
+        fig, ax = plt.subplots(**fig_kwargs)
+
+        # Plot the data
+        ax.plot(x_data, y_data, **plot_params)
+
+        # Apply axis configuration parameters
+        if 'title' in ax_params:
+            ax.set_title(ax_params['title'])
+        else:
+            ax.set_title(f'Angular Domain Data - {mag}', fontsize=14)
+
+        if 'xlabel' in ax_params:
+            ax.set_xlabel(ax_params['xlabel'])
+        else:
+            ax.set_xlabel('Angle [deg]', fontsize=12)
+
+        if 'ylabel' in ax_params:
+            ax.set_ylabel(ax_params['ylabel'])
+        else:
+            ax.set_ylabel(mag, fontsize=12)
+
+        if 'xlim' in ax_params:
+            ax.set_xlim(ax_params['xlim'])
+        if 'ylim' in ax_params:
+            ax.set_ylim(ax_params['ylim'])
+
+        # Configure grid
         ax.grid(True, which='both', linestyle='--', alpha=0.7)
 
         # Configure vertical limits if specified (only if not passed via kwargs)
