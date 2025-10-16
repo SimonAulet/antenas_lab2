@@ -4,7 +4,7 @@
 
 import matplotlib.pyplot as plt
 import numpy as np
-from typing import Literal, Optional, Tuple
+from typing import Literal, Optional, Tuple, Dict, Any
 
 class PlotMixin:
     """
@@ -12,7 +12,7 @@ class PlotMixin:
 
     Provides methods for visualizing data in different representations:
     - Time domain
-    - Frequency domain  
+    - Frequency domain
     - Polar representation
     """
 
@@ -51,7 +51,7 @@ class PlotMixin:
         subplot_params = {}
         plot_params = {'linewidth': 1.5}
         ax_params = {}
-        
+
         # Filter parameters for specific functions
         for key, value in kwargs.items():
             if key in ['figsize', 'dpi', 'facecolor', 'edgecolor', 'frameon', 'tight_layout', 'constrained_layout']:
@@ -63,7 +63,7 @@ class PlotMixin:
             else:
                 # Unrecognized parameters are ignored
                 pass
-        
+
         fig, ax = plt.subplots(**fig_kwargs)
 
         # Plot the data
@@ -74,17 +74,17 @@ class PlotMixin:
             ax.set_title(ax_params['title'])
         else:
             ax.set_title(f'Time Domain Data - {mag}', fontsize=14)
-            
+
         if 'xlabel' in ax_params:
             ax.set_xlabel(ax_params['xlabel'])
         else:
             ax.set_xlabel('Time', fontsize=12)
-            
+
         if 'ylabel' in ax_params:
             ax.set_ylabel(ax_params['ylabel'])
         else:
             ax.set_ylabel(mag, fontsize=12)
-            
+
         if 'xlim' in ax_params:
             ax.set_xlim(ax_params['xlim'])
         if 'ylim' in ax_params:
@@ -180,7 +180,7 @@ class PlotMixin:
         subplot_params = {}
         plot_params = {'linewidth': 1.5}
         ax_params = {}
-        
+
         # Filter parameters for specific functions
         for key, value in kwargs.items():
             if key in ['figsize', 'dpi', 'facecolor', 'edgecolor', 'frameon', 'tight_layout', 'constrained_layout']:
@@ -192,7 +192,7 @@ class PlotMixin:
             else:
                 # Unrecognized parameters are ignored
                 pass
-        
+
         fig, ax = plt.subplots(**fig_kwargs)
 
         # Plot data in polar coordinates
@@ -203,12 +203,12 @@ class PlotMixin:
             ax.set_title(ax_params['title'])
         else:
             ax.set_title(f'Polar Representation - {mag}', fontsize=14, pad=20)
-            
+
         if 'ylabel' in ax_params:
             ax.set_ylabel(ax_params['ylabel'])
         else:
             ax.set_ylabel(mag, fontsize=12, labelpad=20)
-            
+
         if 'ylim' in ax_params:
             ax.set_ylim(ax_params['ylim'])
         # Configure grid with better label visibility
@@ -247,3 +247,73 @@ class PlotMixin:
         # Save figure if filename is specified
         if savefig:
             fig.savefig(savefig, bbox_inches='tight', dpi=300)
+
+        return fig, ax
+
+    def plot_superposition(self, mag: Literal['dB', 'dBm'] = 'dB') -> Tuple[Any, Any]:
+        """
+        Plot data with mirrored superposition for visualization.
+
+        Creates two mirrored plots with extremes meeting at the center.
+
+        Parameters:
+        -----------
+        mag : str, optional
+            Magnitude unit ('dB' or 'dBm'), default 'dB'
+
+        Returns:
+        --------
+        Tuple[matplotlib.figure.Figure, matplotlib.axes.Axes]
+            Figure and axes objects
+        """
+        # Get original data
+        x_data = self.get_x_data()
+        if mag == 'dB':
+            y_data = self.convert_to_db()
+        elif mag == 'dBm':
+            y_data = self.convert_to_dBm()
+        else:
+            raise ValueError(f"Invalid magnitude unit: {mag}. Use 'dB' or 'dBm'")
+
+        n_points = len(x_data)
+        mid_point = n_points // 2
+
+        # Split data into two halves
+        left_y = y_data[mid_point:]  # First half y values
+        right_y = y_data[:mid_point] # Second half y values
+
+        # Create artificial x-axis for superposition
+        # Left half: goes from center outward to left
+        left_x = []
+        for i in range(len(left_y)):
+            distance_from_center = len(left_y) - i - 1
+            left_x.append(-distance_from_center)
+
+        # Right half: goes from center outward to right
+        right_x = []
+        for i in range(len(right_y)):
+            distance_from_center = i
+
+            # Apply 1 unit shift for even number of points to avoid overlap
+            if n_points % 2 == 0:
+                distance_from_center += 1
+
+            right_x.append(distance_from_center)
+
+        # Create figure
+        fig, ax = plt.subplots(figsize=(12, 6))
+
+        # Plot both halves using artificial x-axis
+        ax.plot(left_x, left_y, 'b-', linewidth=2, label='Left half')
+        ax.plot(right_x, right_y, 'r-', linewidth=2, label='Right half (mirrored)')
+
+        # Configure axes
+        ax.set_title(f'Superposition Visualization - {mag}', fontsize=14)
+        ax.set_xlabel('Position from Center', fontsize=12)
+        ax.set_ylabel(mag, fontsize=12)
+        ax.grid(True, which='both', linestyle='--', alpha=0.7)
+        ax.legend()
+
+        plt.tight_layout()
+
+        return fig, ax

@@ -39,28 +39,18 @@ from scripts.sa_data import SAData, load_sa_data
 a = load_sa_data('./Mediciones/1ra med 31Ghz.DAT')
 
 # %%
-a.mirror_data()
+# Visualizar superposición con desplazamientos
+a.plot_superposition(
+    mag='dBm'
+)
 
-# %%
-a.get_processed_data()
+# Obtener puntos de corte para recortar
+#left_cut = cut_info['left_cut']   # Ej: 187.5
+#right_cut = cut_info['right_cut'] # Ej: 192.3
 
-# %%
-a.get_data()
+# Usar estos valores para recortar
+#data.crop_data(start_value=left_cut, end_value=right_cut, in_place=True)
 
-# %%
-a.set_output_filename('Prueba_guardado')
-
-# %%
-a.save_processed_data()
-
-# %%
-b = load_sa_data('Prueba_guardado.DAT')
-
-# %%
-a.plot_time()
-
-# %%
-b.plot_time()
 
 # %%
 
