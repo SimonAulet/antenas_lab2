@@ -250,8 +250,8 @@ class PlotMixin:
 
         return fig, ax
 
-    def plot_superposition(self, mag: Literal['dB', 'dBm'] = 'dB',
-                          left_shift_deg: float = 0.0, right_shift_deg: float = 0.0) -> Tuple[Any, Any]:
+    def plot_superposition(self, mag: Literal['dB', 'dBm'] = 'dB', 
+                          left_shift_deg: float = 0.0, right_shift_deg: float = 0.0) -> Tuple[Any, Any, Dict[str, int]]:
         """
         Plot data with mirrored superposition for visualization.
 
@@ -264,8 +264,9 @@ class PlotMixin:
 
         Returns:
         --------
-        Tuple[matplotlib.figure.Figure, matplotlib.axes.Axes]
-            Figure and axes objects
+        Tuple[matplotlib.figure.Figure, matplotlib.axes.Axes, Dict[str, int]]
+            Figure, axes objects, and dictionary with crop indices
+            {'start_index': int, 'end_index': int}
         """
         # Get original data
         x_data = self.get_x_data()
@@ -282,11 +283,26 @@ class PlotMixin:
         # Split data into two halves (invertir nombres para coincidir con visualización)
         right_y = y_data[mid_point:]   # Segunda mitad como derecha visual (espejada)
         left_y = y_data[:mid_point]    # Primera mitad como izquierda visual
+        
+        # Calculate crop indices based on angular shifts
+        # left_shift_deg applies to visual left (original right data)
+        # right_shift_deg applies to visual right (original left data)
+        total_points = n_points
+        
+        # Calculate number of points to crop from each side
+        left_crop_points = int((left_shift_deg / 360.0) * len(right_y))
+        right_crop_points = int((right_shift_deg / 360.0) * len(left_y))
+        
+        # Calculate crop indices for the original data
+        # start_index: crop from beginning (visual right side)
+        start_index = right_crop_points
+        # end_index: crop from end (visual left side)  
+        end_index = total_points - left_crop_points
 
         # Calculate shift factors from degrees (invertir para coincidir con visualización)
         # Positive shift means the side is "too far", so we need to move it inward
-        right_shift_factor = -left_shift_deg / 360.0 if left_shift_deg != 0 else 0
-        left_shift_factor = -right_shift_deg / 360.0 if right_shift_deg != 0 else 0
+        right_shift_factor = left_shift_deg / 360.0 if left_shift_deg != 0 else 0
+        left_shift_factor = right_shift_deg / 360.0 if right_shift_deg != 0 else 0
 
         # Create artificial x-axis for superposition with shifts
         # Right half (visual left): goes from center outward to left
@@ -325,9 +341,20 @@ class PlotMixin:
         ax.set_title(title, fontsize=14)
         ax.set_xlabel('Position from Center', fontsize=12)
         ax.set_ylabel(mag, fontsize=12)
+        
+        # Fix x-axis limits to maintain visual center regardless of cropping
+        max_distance = max(len(right_y), len(left_y))
+        ax.set_xlim(-max_distance - 1, max_distance + 1)
+        
         ax.grid(True, which='both', linestyle='--', alpha=0.7)
         ax.legend()
 
         plt.tight_layout()
-
-        return fig, ax
+        
+        # Return crop indices for use with crop_data
+        crop_info = {
+            'start_index': start_index,
+            'end_index': end_index
+        }
+        
+        return fig, ax, crop_info
