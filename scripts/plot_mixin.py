@@ -279,49 +279,49 @@ class PlotMixin:
         n_points = len(x_data)
         mid_point = n_points // 2
 
-        # Split data into two halves (mantener como estaba corregido)
-        left_y = y_data[mid_point:]   # Segunda mitad como izquierda (espejada)
-        right_y = y_data[:mid_point]  # Primera mitad como derecha
+        # Split data into two halves (invertir nombres para coincidir con visualización)
+        right_y = y_data[mid_point:]   # Segunda mitad como derecha visual (espejada)
+        left_y = y_data[:mid_point]    # Primera mitad como izquierda visual
 
-        # Calculate shift factors from degrees
+        # Calculate shift factors from degrees (invertir para coincidir con visualización)
         # Positive shift means the side is "too far", so we need to move it inward
-        left_shift_factor = left_shift_deg / 360.0 if left_shift_deg != 0 else 0
-        right_shift_factor = right_shift_deg / 360.0 if right_shift_deg != 0 else 0
+        right_shift_factor = -left_shift_deg / 360.0 if left_shift_deg != 0 else 0
+        left_shift_factor = -right_shift_deg / 360.0 if right_shift_deg != 0 else 0
 
         # Create artificial x-axis for superposition with shifts
-        # Left half: goes from center outward to left
-        left_x = []
-        for i in range(len(left_y)):
-            distance_from_center = len(left_y) - i - 1
-            # Apply left shift: positive shift moves left side inward (less negative)
-            shifted_distance = distance_from_center - left_shift_factor * len(left_y)
-            left_x.append(-shifted_distance)
-
-        # Right half: goes from center outward to right
+        # Right half (visual left): goes from center outward to left
         right_x = []
         for i in range(len(right_y)):
-            distance_from_center = i
+            distance_from_center = len(right_y) - i - 1
+            # Apply right shift: positive shift moves visual left side inward (less negative)
+            shifted_distance = distance_from_center - right_shift_factor * len(right_y)
+            right_x.append(-shifted_distance)
 
+        # Left half (visual right): goes from center outward to right
+        left_x = []
+        for i in range(len(left_y)):
+            distance_from_center = i
+            
             # Apply 1 unit shift for even number of points to avoid overlap
             if n_points % 2 == 0:
                 distance_from_center += 1
 
-            # Apply right shift: positive shift moves right side inward (less positive)
-            shifted_distance = distance_from_center - right_shift_factor * len(right_y)
-            right_x.append(shifted_distance)
+            # Apply left shift: positive shift moves visual right side inward (less positive)
+            shifted_distance = distance_from_center - left_shift_factor * len(left_y)
+            left_x.append(shifted_distance)
 
         # Create figure
         fig, ax = plt.subplots(figsize=(12, 6))
 
-        # Plot both halves using artificial x-axis
-        ax.plot(left_x, left_y, 'b-', linewidth=2, label='Left half')
-        ax.plot(right_x, right_y, 'r-', linewidth=2, label='Right half (mirrored)')
+        # Plot both halves using artificial x-axis (invertir leyendas)
+        ax.plot(right_x, right_y, 'b-', linewidth=2, label='Right half (original)')
+        ax.plot(left_x, left_y, 'r-', linewidth=2, label='Left half (mirrored)')
 
         # Configure axes
         # Create title with shift information
         title = f'Superposition Visualization - {mag}'
         if left_shift_deg != 0 or right_shift_deg != 0:
-            title += f'\nLeft shift: {left_shift_deg}°, Right shift: {right_shift_deg}°'
+            title += f'\nRight shift: {left_shift_deg}°, Left shift: {right_shift_deg}°'
         ax.set_title(title, fontsize=14)
         ax.set_xlabel('Position from Center', fontsize=12)
         ax.set_ylabel(mag, fontsize=12)
