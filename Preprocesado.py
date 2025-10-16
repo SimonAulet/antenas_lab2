@@ -36,20 +36,23 @@
 from scripts.sa_data import SAData, load_sa_data
 
 # %%
-a = load_sa_data('./Mediciones/1ra med 31Ghz.DAT')
+data = load_sa_data('./Mediciones/1ra med 31Ghz.DAT')
+
+# %%
+data.plot_time(mag='dB')
 
 # %%
 # Sin desplazamientos
-#fig, ax = a.plot_superposition(mag='dBm')
+#fig, ax = data.plot_superposition(mag='dBm')
 
 # Con desplazamientos de 10° en ambos lados
-fig, ax = a.plot_superposition(mag='dBm', left_shift_deg=10, right_shift_deg=10)
+#fig, ax = data.plot_superposition(mag='dBm', left_shift_deg=10, right_shift_deg=10)
 
 # Solo desplazar lado derecho 15°
 #fig, ax = data.plot_superposition(mag='dBm', right_shift_deg=15)
 
 # Desplazar hacia adentro (negativo)
-#fig, ax = data.plot_superposition(mag='dBm', left_shift_deg=-5, right_shift_deg=-5)
+fig, ax = data.plot_superposition(mag='dBm', left_shift_deg=10, right_shift_deg=10)
 
 
 # %%

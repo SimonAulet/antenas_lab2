@@ -279,9 +279,9 @@ class PlotMixin:
         n_points = len(x_data)
         mid_point = n_points // 2
 
-        # Split data into two halves
-        left_y = y_data[mid_point:]  # First half y values
-        right_y = y_data[:mid_point] # Second half y values
+        # Split data into two halves (mantener como estaba corregido)
+        left_y = y_data[mid_point:]   # Segunda mitad como izquierda (espejada)
+        right_y = y_data[:mid_point]  # Primera mitad como derecha
 
         # Calculate shift factors from degrees
         # Positive shift means the side is "too far", so we need to move it inward
@@ -293,8 +293,8 @@ class PlotMixin:
         left_x = []
         for i in range(len(left_y)):
             distance_from_center = len(left_y) - i - 1
-            # Apply left shift: positive shift moves left side outward (more negative)
-            shifted_distance = distance_from_center + left_shift_factor * len(left_y)
+            # Apply left shift: positive shift moves left side inward (less negative)
+            shifted_distance = distance_from_center - left_shift_factor * len(left_y)
             left_x.append(-shifted_distance)
 
         # Right half: goes from center outward to right
@@ -306,8 +306,8 @@ class PlotMixin:
             if n_points % 2 == 0:
                 distance_from_center += 1
 
-            # Apply right shift: positive shift moves right side outward (more positive)
-            shifted_distance = distance_from_center + right_shift_factor * len(right_y)
+            # Apply right shift: positive shift moves right side inward (less positive)
+            shifted_distance = distance_from_center - right_shift_factor * len(right_y)
             right_x.append(shifted_distance)
 
         # Create figure
