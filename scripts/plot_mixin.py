@@ -356,6 +356,175 @@ class PlotMixin:
 
         return fig, ax
 
+    def plot_directivity_beamwidth(self, plot_type: Literal['polar', 'cartesian'] = 'polar', savefig: str = '', **kwargs):
+        """
+        Plot directivity pattern and calculate beamwidth.
+
+        This method plots the antenna directivity pattern and calculates the beamwidth
+        at -3dB points from the maximum directivity. It can display the pattern in
+        either polar coordinates or Cartesian coordinates.
+
+        Parameters:
+        -----------
+        plot_type : str, optional
+            Type of plot ('polar' or 'cartesian'), default 'polar'
+            - 'polar': Polar plot showing angular distribution
+            - 'cartesian': Cartesian plot with angle in degrees on x-axis
+        savefig : str, optional
+            Filename to save the figure. If empty string, figure is not saved.
+
+        Returns:
+        --------
+        float
+            Beamwidth in degrees
+
+        Features:
+        --------
+        - Finds and marks the point of maximum directivity
+        - Calculates beamwidth at -3dB points from maximum
+        - For polar plots: draws lines from center to beamwidth points
+        - For Cartesian plots: draws horizontal line at -3dB level and vertical lines at beamwidth points
+        - Displays beamwidth value in the plot legend
+
+        Notes:
+        ------
+        - Beamwidth is calculated as the angular separation between the two points
+          where the directivity drops to -3dB from the maximum
+        - For normalized data, the maximum directivity should be 0dB
+        - The method handles circular data (0-360°) correctly
+        """
+        # Get magnitude data in dB (normalized)
+        magnitude_data = self.convert_to_db()
+
+        # Get angular data
+        if plot_type == 'polar':
+            angle_data = self.convert_to_polar()
+        else:  # Cartesian plot
+            angle_data = self.convert_to_degree()
+
+        # Find maximum directivity point (should be 0 dB for normalized data)
+        max_idx = np.argmax(magnitude_data)
+        max_angle = angle_data[max_idx]
+        max_directivity = magnitude_data[max_idx]
+
+        # Find beamwidth (points where magnitude is -3 dB from maximum)
+        beamwidth_threshold = max_directivity - 3.0
+        beamwidth_indices = np.where(magnitude_data >= beamwidth_threshold)[0]
+
+        if len(beamwidth_indices) > 0:
+            # Find the first and last points that cross the -3 dB threshold
+            first_beam_idx = beamwidth_indices[0]
+            last_beam_idx = beamwidth_indices[-1]
+
+            beamwidth_angle = abs(angle_data[last_beam_idx] - angle_data[first_beam_idx])
+
+            # Convert to degrees if in polar coordinates
+            if plot_type == 'polar':
+                beamwidth_angle = np.rad2deg(beamwidth_angle)
+        else:
+            # If no beamwidth found, use full range
+            beamwidth_angle = 360.0
+            first_beam_idx = 0
+            last_beam_idx = len(angle_data) - 1
+
+        # Create figure and axes
+        if plot_type == 'polar':
+            fig_kwargs = {'figsize': (8, 8), 'subplot_kw': {'projection': 'polar'}}
+        else:
+            fig_kwargs = {'figsize': (10, 6)}
+
+        # Separate parameters for plt.subplots and ax.plot
+        subplot_params = {}
+        plot_params = {'linewidth': 2, 'color': 'blue', 'label': 'Directivity Pattern'}
+        ax_params = {}
+
+        # Filter parameters for specific functions
+        for key, value in kwargs.items():
+            if key in ['figsize', 'dpi', 'facecolor', 'edgecolor', 'frameon', 'tight_layout', 'constrained_layout']:
+                fig_kwargs[key] = value
+            elif key in ['color', 'linestyle', 'marker', 'markersize', 'label']:
+                plot_params[key] = value
+            elif key in ['title', 'xlabel', 'ylabel', 'xlim', 'ylim']:
+                ax_params[key] = value
+            else:
+                # Unrecognized parameters are ignored
+                pass
+
+        fig, ax = plt.subplots(**fig_kwargs)
+
+        # Plot directivity pattern
+        ax.plot(angle_data, magnitude_data, **plot_params)
+
+        # Mark maximum directivity point
+        ax.plot([max_angle], [max_directivity], 'ro', markersize=8, label='Maximum Directivity')
+
+        # Mark beamwidth points
+        if len(beamwidth_indices) > 0:
+            # Plot beamwidth lines for polar plot
+            if plot_type == 'polar':
+                # Get the minimum dB value to use as the "center" of the pattern
+                min_db = np.min(magnitude_data)
+                
+                # Draw lines from minimum dB (center of pattern) to directivity values
+                # Mark maximum directivity direction
+                ax.plot([max_angle, max_angle], [min_db, max_directivity], 
+                       'r--', linewidth=1, alpha=0.7, label='Max Directivity')
+                
+                # Mark beamwidth boundaries
+                ax.plot([angle_data[first_beam_idx], angle_data[first_beam_idx]], 
+                       [min_db, magnitude_data[first_beam_idx]], 
+                       'g--', linewidth=2, label=f'Beamwidth: {beamwidth_angle:.1f}°')
+                ax.plot([angle_data[last_beam_idx], angle_data[last_beam_idx]], 
+                       [min_db, magnitude_data[last_beam_idx]], 
+                       'g--', linewidth=2)
+            else:
+                # For Cartesian plot, draw vertical lines at beamwidth points
+                ax.axvline(x=angle_data[first_beam_idx], color='green', linestyle='--', linewidth=2, 
+                          label=f'Beamwidth: {beamwidth_angle:.1f}°')
+                ax.axvline(x=angle_data[last_beam_idx], color='green', linestyle='--', linewidth=2)
+
+        # Apply axis configuration parameters
+        if 'title' in ax_params:
+            ax.set_title(ax_params['title'])
+        else:
+            ax.set_title(f'Directivity Pattern (Beamwidth: {beamwidth_angle:.1f}°)', fontsize=14)
+
+        if plot_type == 'polar':
+            if 'ylabel' in ax_params:
+                ax.set_ylabel(ax_params['ylabel'])
+            else:
+                ax.set_ylabel('dB', fontsize=12, labelpad=20)
+
+            # Configure angles in degrees instead of radians
+            ax.set_thetagrids(range(0, 360, 45),
+                             ['0°', '45°', '90°', '135°', '180°', '225°', '270°', '315°'])
+            ax.grid(True, linestyle='--', alpha=0.7)
+            ax.set_rlabel_position(22.5)
+        else:
+            if 'xlabel' in ax_params:
+                ax.set_xlabel(ax_params['xlabel'])
+            else:
+                ax.set_xlabel('Angle [deg]', fontsize=12)
+
+            if 'ylabel' in ax_params:
+                ax.set_ylabel(ax_params['ylabel'])
+            else:
+                ax.set_ylabel('dB', fontsize=12)
+
+            ax.grid(True, which='both', linestyle='--', alpha=0.7)
+
+        # Add legend
+        ax.legend(loc='best')
+
+        # Improve layout
+        plt.tight_layout()
+
+        # Save figure if filename is specified
+        if savefig:
+            fig.savefig(savefig, bbox_inches='tight', dpi=300)
+
+        return beamwidth_angle
+
     def plot_superposition(self, mag: Literal['dB', 'dBm'] = 'dB',
                           left_shift_deg: float = 0.0, right_shift_deg: float = 0.0) -> Dict[str, int]:
         """
