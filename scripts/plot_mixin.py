@@ -5,6 +5,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 from typing import Literal, Optional, Tuple, Dict, Any
+from scipy.signal import find_peaks
 
 class PlotMixin:
     """
@@ -128,10 +129,7 @@ class PlotMixin:
             Magnitude unit ('dB' or 'dBm'), default 'dB'
             'dB' uses normalized data (P - max(P))
             'dBm' uses absolute power in dBm
-        min_deg : float, optional
-            Minimum degree value for x-axis (default: 0.0)
-        max_deg : float, optional
-            Maximum degree value for x-axis (default: 360.0)
+
         y_limits : Tuple[float, float], optional
             Vertical limits for y-axis (min, max). If None, auto-adjusts.
         savefig : str, optional
@@ -399,7 +397,7 @@ class PlotMixin:
         # Get angular data
         if plot_type == 'polar':
             angle_data = self.convert_to_polar()
-        else:  # Cartesian plot
+        else:  # cartesian plot
             angle_data = self.convert_to_degree()
 
         # Find maximum directivity point (should be 0 dB for normalized data)
@@ -464,22 +462,22 @@ class PlotMixin:
             if plot_type == 'polar':
                 # Get the minimum dB value to use as the "center" of the pattern
                 min_db = np.min(magnitude_data)
-                
+
                 # Draw lines from minimum dB (center of pattern) to directivity values
                 # Mark maximum directivity direction
-                ax.plot([max_angle, max_angle], [min_db, max_directivity], 
+                ax.plot([max_angle, max_angle], [min_db, max_directivity],
                        'r--', linewidth=1, alpha=0.7, label='Max Directivity')
-                
+
                 # Mark beamwidth boundaries
-                ax.plot([angle_data[first_beam_idx], angle_data[first_beam_idx]], 
-                       [min_db, magnitude_data[first_beam_idx]], 
+                ax.plot([angle_data[first_beam_idx], angle_data[first_beam_idx]],
+                       [min_db, magnitude_data[first_beam_idx]],
                        'g--', linewidth=2, label=f'Beamwidth: {beamwidth_angle:.1f}°')
-                ax.plot([angle_data[last_beam_idx], angle_data[last_beam_idx]], 
-                       [min_db, magnitude_data[last_beam_idx]], 
+                ax.plot([angle_data[last_beam_idx], angle_data[last_beam_idx]],
+                       [min_db, magnitude_data[last_beam_idx]],
                        'g--', linewidth=2)
             else:
                 # For Cartesian plot, draw vertical lines at beamwidth points
-                ax.axvline(x=angle_data[first_beam_idx], color='green', linestyle='--', linewidth=2, 
+                ax.axvline(x=angle_data[first_beam_idx], color='green', linestyle='--', linewidth=2,
                           label=f'Beamwidth: {beamwidth_angle:.1f}°')
                 ax.axvline(x=angle_data[last_beam_idx], color='green', linestyle='--', linewidth=2)
 
@@ -524,6 +522,219 @@ class PlotMixin:
             fig.savefig(savefig, bbox_inches='tight', dpi=300)
 
         return beamwidth_angle
+
+    def plot_sidelobe_level(self, plot_type: Literal['polar', 'cartesian'] = 'polar',
+                           min_sll_level: float = -15.0,
+                           savefig: str = '',
+                           **kwargs) -> float:
+        """
+        Plot directivity pattern and calculate sidelobe level (SLL).
+
+        This method plots the antenna directivity pattern and calculates the maximum
+        sidelobe level relative to the main lobe.
+
+        Parameters:
+        -----------
+        plot_type : str, optional
+            Type of plot ('polar' or 'cartesian'), default 'polar'
+            - 'polar': Polar plot showing angular distribution
+            - 'cartesian': Cartesian plot with angle in degrees on x-axis
+        min_sll_level : float, optional
+            Minimum level in dB to consider as a sidelobe, default -15.0
+        savefig : str, optional
+            Filename to save the figure. If empty string, figure is not saved.
+
+        Returns:
+        --------
+        float
+            Maximum sidelobe level in dB
+
+        Features:
+        --------
+        - Finds and marks the point of maximum directivity
+        - Calculates beamwidth to define main lobe region
+        - Identifies and marks sidelobes above minimum level
+        - Returns maximum sidelobe level
+        """
+        # Get magnitude data in dB (normalized)
+        magnitude_data = self.convert_to_db()
+
+        # Get angular data
+        if plot_type == 'polar':
+            angle_data = self.convert_to_polar()
+            angles_deg = np.rad2deg(angle_data)
+        else:  # cartesian plot
+            angles_deg = self.convert_to_degree()
+            angle_data = np.deg2rad(angles_deg)
+
+        # Find maximum directivity point (should be 0 dB for normalized data)
+        max_idx = np.argmax(magnitude_data)
+        max_angle = angle_data[max_idx]
+        max_angle_deg = angles_deg[max_idx]
+        max_directivity = magnitude_data[max_idx]
+
+        # Calculate beamwidth to define main lobe region
+        beamwidth_threshold = max_directivity - 3.0
+        beamwidth_indices = np.where(magnitude_data >= beamwidth_threshold)[0]
+
+        if len(beamwidth_indices) > 0:
+            first_beam_idx = beamwidth_indices[0]
+            last_beam_idx = beamwidth_indices[-1]
+            beamwidth_angle = abs(angles_deg[last_beam_idx] - angles_deg[first_beam_idx])
+        else:
+            beamwidth_angle = 360.0
+            first_beam_idx = 0
+            last_beam_idx = len(angles_deg) - 1
+
+        # Define main lobe region (beamwidth with some margin)
+        main_lobe_margin = beamwidth_angle * 0.5  # 50% margin on each side
+        main_lobe_start = max_angle_deg - beamwidth_angle - main_lobe_margin
+        main_lobe_end = max_angle_deg + beamwidth_angle + main_lobe_margin
+
+        # Handle circular data (0-360°)
+        main_lobe_start = main_lobe_start % 360
+        main_lobe_end = main_lobe_end % 360
+
+        # Find sidelobes (peaks outside main lobe region)
+        sidelobe_level = self._find_sidelobe_level(angles_deg, magnitude_data,
+                                                  main_lobe_start, main_lobe_end,
+                                                  min_sll_level)
+
+        # Create figure and axes
+        if plot_type == 'polar':
+            fig_kwargs = {'figsize': (8, 8), 'subplot_kw': {'projection': 'polar'}}
+        else:
+            fig_kwargs = {'figsize': (10, 6)}
+
+        # Separate parameters for plt.subplots and ax.plot
+        subplot_params = {}
+        plot_params = {'linewidth': 2, 'color': 'blue', 'label': 'Directivity Pattern'}
+        ax_params = {}
+
+        # Filter parameters for specific functions
+        for key, value in kwargs.items():
+            if key in ['figsize', 'dpi', 'facecolor', 'edgecolor', 'frameon', 'tight_layout', 'constrained_layout']:
+                fig_kwargs[key] = value
+            elif key in ['color', 'linestyle', 'marker', 'markersize', 'label']:
+                plot_params[key] = value
+            elif key in ['title', 'xlabel', 'ylabel', 'xlim', 'ylim']:
+                ax_params[key] = value
+            else:
+                # Unrecognized parameters are ignored
+                pass
+
+        fig, ax = plt.subplots(**fig_kwargs)
+
+        # Plot directivity pattern
+        ax.plot(angle_data, magnitude_data, **plot_params)
+
+        # Mark maximum directivity point
+        ax.plot([max_angle], [max_directivity], 'ro', markersize=8,
+               label=f'Max Directivity ({max_directivity:.1f} dB)')
+
+        # Mark sidelobes if found
+        if sidelobe_level > -np.inf:
+            # Find all sidelobes for visualization
+            sidelobe_indices = self._find_sidelobes(angles_deg, magnitude_data,
+                                                   main_lobe_start, main_lobe_end,
+                                                   min_sll_level)
+
+            for idx in sidelobe_indices:
+                ax.plot([angle_data[idx]], [magnitude_data[idx]], 'go', markersize=6,
+                       label=f'Sidelobes (max: {sidelobe_level:.1f} dB)')
+
+        # Apply axis configuration parameters
+        if 'title' in ax_params:
+            ax.set_title(ax_params['title'])
+        else:
+            title = f'Directivity Pattern - SLL: {sidelobe_level:.1f} dB'
+            ax.set_title(title, fontsize=14)
+
+        if plot_type == 'polar':
+            if 'ylabel' in ax_params:
+                ax.set_ylabel(ax_params['ylabel'])
+            else:
+                ax.set_ylabel('dB', fontsize=12, labelpad=20)
+
+            # Configure angles in degrees instead of radians
+            ax.set_thetagrids(range(0, 360, 45),
+                             ['0°', '45°', '90°', '135°', '180°', '225°', '270°', '315°'])
+            ax.grid(True, linestyle='--', alpha=0.7)
+            ax.set_rlabel_position(22.5)
+        else:
+            if 'xlabel' in ax_params:
+                ax.set_xlabel(ax_params['xlabel'])
+            else:
+                ax.set_xlabel('Angle [deg]', fontsize=12)
+
+            if 'ylabel' in ax_params:
+                ax.set_ylabel(ax_params['ylabel'])
+            else:
+                ax.set_ylabel('dB', fontsize=12)
+
+            ax.grid(True, which='both', linestyle='--', alpha=0.7)
+
+        # Add legend (avoid duplicate labels)
+        handles, labels = ax.get_legend_handles_labels()
+        by_label = dict(zip(labels, handles))
+        ax.legend(by_label.values(), by_label.keys(), loc='best')
+
+        # Improve layout
+        plt.tight_layout()
+
+        # Save figure if filename is specified
+        if savefig:
+            fig.savefig(savefig, bbox_inches='tight', dpi=300)
+
+        return sidelobe_level
+
+    def _find_sidelobe_level(self, angles_deg: np.ndarray, magnitude_data: np.ndarray,
+                            main_lobe_start: float, main_lobe_end: float,
+                            min_sll_level: float) -> float:
+        """
+        Find the maximum sidelobe level.
+        """
+        sidelobe_indices = self._find_sidelobes(angles_deg, magnitude_data,
+                                               main_lobe_start, main_lobe_end,
+                                               min_sll_level)
+
+        if len(sidelobe_indices) > 0:
+            return np.max(magnitude_data[sidelobe_indices])
+        else:
+            return -np.inf  # No sidelobes found
+
+    def _find_sidelobes(self, angles_deg: np.ndarray, magnitude_data: np.ndarray,
+                       main_lobe_start: float, main_lobe_end: float,
+                       min_sll_level: float) -> np.ndarray:
+        """
+        Find indices of sidelobes outside the main lobe region.
+        """
+        # Find peaks in the data
+        peaks, properties = find_peaks(magnitude_data,
+                                      height=min_sll_level,
+                                      distance=len(magnitude_data)//20,  # ~5% of data points
+                                      prominence=1.0)  # Minimum prominence of 1 dB
+
+        if len(peaks) == 0:
+            return np.array([])
+
+        # Filter peaks that are outside main lobe region
+        sidelobe_indices = []
+
+        for peak_idx in peaks:
+            peak_angle = angles_deg[peak_idx]
+
+            # Check if peak is outside main lobe region
+            if main_lobe_start <= main_lobe_end:
+                # Normal case: main lobe doesn't wrap around 360°
+                if peak_angle < main_lobe_start or peak_angle > main_lobe_end:
+                    sidelobe_indices.append(peak_idx)
+            else:
+                # Main lobe wraps around 360° (e.g., 350° to 10°)
+                if peak_angle > main_lobe_end and peak_angle < main_lobe_start:
+                    sidelobe_indices.append(peak_idx)
+
+        return np.array(sidelobe_indices)
 
     def plot_superposition(self, mag: Literal['dB', 'dBm'] = 'dB',
                           left_shift_deg: float = 0.0, right_shift_deg: float = 0.0) -> Dict[str, int]:

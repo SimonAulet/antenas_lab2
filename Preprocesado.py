@@ -14,7 +14,7 @@
 # ---
 
 # %% [markdown]
-# # Preprocesado de los archivos
+# # Preprocesado de los archivos medidos
 # Los archivos extraídos del analizador de espectro tienen una cobertura mayor ya que la tornamesa va de -190 a +190 grados con lo cual una partecita está superpuesta. También fué girada en distinto sentido en cada medición. El generador de RF fué configurado a 20dBm
 
 # %% [markdown] jp-MarkdownHeadingCollapsed=true
@@ -146,3 +146,130 @@ medicion_6.save_processed_data(output_dir='Mediciones/')
 
 # %% [markdown]
 # Copio directamente archivo renombrandolo a `piso_ruido.DAT`
+
+# %% [markdown]
+# # Preprocesado de los archivos simulados
+#
+# Los archivos simulados tienen más información como la fase y el radio axial. Son archivos .txt con una fila por cada grado de medición. Se tienen las componentes $\theta$ que es el angulo que varía y $\phi$ que es el angulo fijo. $\theta$ varía de 0 a 180 y luego de 180 a 0 mientras que $\phi$ está fijo en 90 para la primer mitad y luego está fijo en 270. Esta variación complica la extracción ya que tengo datos repetidos en el eje $x$. Se llegaría al mismo resultado físico dejando $\phi$ fijo en 90 y variando $\theta$ de 0 a 360.<br>
+# Entonces desestimo los valores de $\theta$ y de $\phi$ y genero un nuevo indice $t$ para el eje $x$, tomo los valores de $y$ como vienen y luego convierto $t$ a grados para los gráficos, que ya lo tengo implementado. El resultado es el mismo
+
+# %% [markdown]
+# Los valores a tomar para tener equivalencias con los archivos medidos son Abs(Horiz)[dBi] como polarización directa y Abs(Verti)[dBi] como polarización cruzada. Relación axial y fase los desestimo.
+#
+# La magnitud de los datos es $dBi$. En el resto de los ploteos uso $dB$ lo cual es poco claro ya que en verdad $dB$ se obtiene normalizando $dBm$. En cualquier caso, para  mantener consistencia, uso $dB$ normalizados los cuales consigo simplemente desplazando $dBi$ con la función ya implementada para $dBm$. No se pierde información. Que práctico es laburar de decibeles por favorrr
+#
+# El campo simulado es el campo magnético $H$ pero como se está en campo lejano y $H$ es proporcional a $E$, al estar los datos normalizados las representaciónes son iguales con lo cual tambien desestimo esto sin problema.
+
+# %%
+from scripts.sa_data import SAData, load_sa_data
+
+# %% [markdown]
+# ## Simulaciónes a 2.7GHz
+
+# %%
+from scripts.txt2dat import load_text_file
+
+output_path = load_text_file(
+    file_path='./simulaciones/originales/Diagrama_2_7GHz_PlanoHorizontal.txt',
+    output_path='./simulaciones/',
+    y_col=3, #Abs(horiz)[dBi   ]=pol directa
+    start_row=3,
+    end_row=363,
+    y_unit='dBi',
+    circular_shift=180
+)
+
+
+# %%
+# !mv ./simulaciones/Diagrama_2_7GHz_PlanoHorizontal.DAT ./simulaciones/directa_2.7GHz.DAT
+
+# %%
+from scripts.txt2dat import load_text_file
+
+output_path = load_text_file(
+    file_path='./simulaciones/originales/Diagrama_2_7GHz_PlanoHorizontal.txt',
+    output_path='./simulaciones/',
+    y_col=5, #Abs(Verti)[dBi   ]=pol cruzada
+    start_row=3,
+    end_row=363,
+    y_unit='dBi',
+    circular_shift=180
+)
+
+
+# %%
+# !mv ./simulaciones/Diagrama_2_7GHz_PlanoHorizontal.DAT ./simulaciones/cruzada_2.7GHz.DAT
+
+# %% [markdown]
+# ## Simulaciónes a 2.9GHz
+
+# %%
+from scripts.txt2dat import load_text_file
+
+output_path = load_text_file(
+    file_path='./simulaciones/originales/Diagrama_2_9GHz_PlanoHorizontal.txt',
+    output_path='./simulaciones/',
+    y_col=3, #Abs(horiz)[dBi   ]=pol directa
+    start_row=3,
+    end_row=363,
+    y_unit='dBi',
+    circular_shift=180
+)
+
+
+# %%
+# !mv ./simulaciones/Diagrama_2_9GHz_PlanoHorizontal.DAT ./simulaciones/directa_2.9GHz.DAT
+
+# %%
+from scripts.txt2dat import load_text_file
+
+output_path = load_text_file(
+    file_path='./simulaciones/originales/Diagrama_2_9GHz_PlanoHorizontal.txt',
+    output_path='./simulaciones/',
+    y_col=5, #Abs(Verti)[dBi   ]=pol cruzada
+    start_row=3,
+    end_row=363,
+    y_unit='dBi',
+    circular_shift=180
+)
+
+
+# %%
+# !mv ./simulaciones/Diagrama_2_9GHz_PlanoHorizontal.DAT ./simulaciones/cruzada_2.9GHz.DAT
+
+# %% [markdown]
+# ## Simulaciónes a 3.1GHz
+
+# %%
+from scripts.txt2dat import load_text_file
+
+output_path = load_text_file(
+    file_path='./simulaciones/originales/Diagrama_3_1GHz_PlanoHorizontal.txt',
+    output_path='./simulaciones/',
+    y_col=3, #Abs(horiz)[dBi   ]=pol directa
+    start_row=3,
+    end_row=363,
+    y_unit='dBi',
+    circular_shift=180
+)
+
+
+# %%
+# !mv ./simulaciones/Diagrama_3_1GHz_PlanoHorizontal.DAT ./simulaciones/directa_3.1GHz.DAT
+
+# %%
+from scripts.txt2dat import load_text_file
+
+output_path = load_text_file(
+    file_path='./simulaciones/originales/Diagrama_3_1GHz_PlanoHorizontal.txt',
+    output_path='./simulaciones/',
+    y_col=5, #Abs(Verti)[dBi   ]=pol cruzada
+    start_row=3,
+    end_row=363,
+    y_unit='dBi',
+    circular_shift=180
+)
+
+
+# %%
+# !mv ./simulaciones/Diagrama_3_1GHz_PlanoHorizontal.DAT ./simulaciones/cruzada_3.1GHz.DAT
