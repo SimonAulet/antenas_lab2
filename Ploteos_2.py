@@ -41,10 +41,47 @@ cruzada_simulada_31 = load_sa_data('./simulaciones/cruzada_3.1GHz.DAT')
 # Ploteo superpuesto de mediciónes reales
 
 # %%
-directas_medidas_db = {'deg': directa_medida_27.convert_to_degree(min_deg=-180, max_deg=180), '2.7GHz': directa_medida_27.convert_to_dBm(), '2.9GHz': directa_medida_29.convert_to_dBm(), '3.1GHz': directa_medida_31.convert_to_dBm()}
+# Normalización global: usar el máximo de la polarización directa como referencia para cada frecuencia
+def normalize_with_global_reference(direct_data, cross_data):
+    """
+    Normaliza datos usando el máximo de la polarización directa como referencia global
+    """
+    # Obtener datos en unidades originales (dBm o dBi)
+    direct_y_unit = direct_data.header_data.get('y-Unit', '').upper()
+    cross_y_unit = cross_data.header_data.get('y-Unit', '').upper()
+    
+    # Verificar que ambas mediciones tengan las mismas unidades
+    if direct_y_unit != cross_y_unit:
+        raise ValueError(f"Unidades inconsistentes: directa={direct_y_unit}, cruzada={cross_y_unit}")
+    
+    # Obtener datos en unidades originales
+    if direct_y_unit in ['DBM', 'dBm', 'DBM;']:
+        direct_original = direct_data.data['y1'].copy()
+        cross_original = cross_data.data['y1'].copy()
+    elif direct_y_unit in ['DBI', 'dBi', 'DBI;']:
+        direct_original = direct_data.data['y1'].copy()
+        cross_original = cross_data.data['y1'].copy()
+    else:
+        raise ValueError(f"Unidad no reconocida: {direct_y_unit}")
+    
+    # Encontrar el máximo de la polarización directa
+    global_max = np.max(direct_original)
+    
+    # Normalizar ambos conjuntos con respecto al mismo máximo
+    direct_normalized = direct_original - global_max
+    cross_normalized = cross_original - global_max
+    
+    return direct_normalized, cross_normalized
+
+# Aplicar normalización global para cada frecuencia
+directa_27_norm, cruzada_27_norm = normalize_with_global_reference(directa_medida_27, cruzada_medida_27)
+directa_29_norm, cruzada_29_norm = normalize_with_global_reference(directa_medida_29, cruzada_medida_29)
+directa_31_norm, cruzada_31_norm = normalize_with_global_reference(directa_medida_31, cruzada_medida_31)
+
+directas_medidas_db = {'deg': directa_medida_27.convert_to_degree(min_deg=-180, max_deg=180), '2.7GHz': directa_27_norm, '2.9GHz': directa_29_norm, '3.1GHz': directa_31_norm}
 
 # %%
-cruzadas_medidas_db = {'deg': cruzada_medida_27.convert_to_degree(min_deg=-180, max_deg=180), '2.7GHz': cruzada_medida_27.convert_to_dBm(), '2.9GHz': cruzada_medida_29.convert_to_dBm(), '3.1GHz': cruzada_medida_31.convert_to_dBm()}
+cruzadas_medidas_db = {'deg': cruzada_medida_27.convert_to_degree(min_deg=-180, max_deg=180), '2.7GHz': cruzada_27_norm, '2.9GHz': cruzada_29_norm, '3.1GHz': cruzada_31_norm}
 
 # %% [markdown]
 # Por el recorte los ejes quedaron de distinta longitud. Normalizo promediando datos en el medio cuando no hay
@@ -125,9 +162,8 @@ plt.plot(cruzadas_medidas_db_norm['deg'], cruzadas_medidas_db_norm['2.9GHz'], 'b
 plt.plot(cruzadas_medidas_db_norm['deg'], cruzadas_medidas_db_norm['3.1GHz'], 'k-', linewidth=2, label='3.1 GHz')
 
 plt.title('Diagramas de Radiación - Polarización Cruzada', fontsize=14)
-plt.ylim(-80, -30)
 plt.xlabel('Ángulo [deg]', fontsize=12)
-plt.ylabel('Potencia [dBi]', fontsize=12)
+plt.ylabel('Potencia [dB]', fontsize=12)
 plt.grid(True, linestyle='--', alpha=0.7)
 plt.legend()
 plt.tight_layout()
@@ -153,7 +189,7 @@ plt.plot(cruzadas_medidas_db_norm['deg'], cruzadas_medidas_db_norm['3.1GHz'], 'k
 
 plt.title('Comparación Polarización Directa vs Cruzada', fontsize=14)
 plt.xlabel('Ángulo [deg]', fontsize=12)
-plt.ylabel('Potencia [dBi]', fontsize=12)
+plt.ylabel('Potencia [dB]', fontsize=12)
 plt.grid(True, linestyle='--', alpha=0.7)
 plt.legend()
 plt.tight_layout()
@@ -166,8 +202,13 @@ plt.show()
  # %%
  # Normalización de ejes X para igualar dimensiones con función previamente definida
  # %%
- directas_simuladas_db = {'deg': directa_simulada_27.convert_to_degree(min_deg=-180, max_deg=180), '2.7GHz': directa_simulada_27.convert_to_dBm(), '2.9GHz': directa_simulada_29.convert_to_dBm(), '3.1GHz': directa_simulada_31.convert_to_dBm()}
- cruzadas_simuladas_db = {'deg': cruzada_simulada_27.convert_to_degree(min_deg=-180, max_deg=180), '2.7GHz': cruzada_simulada_27.convert_to_dBm(), '2.9GHz': cruzada_simulada_29.convert_to_dBm(), '3.1GHz': cruzada_simulada_31.convert_to_dBm()}
+ # Para simulaciones (dBi), usar el mismo enfoque de normalización global
+ directa_sim_27_norm, cruzada_sim_27_norm = normalize_with_global_reference(directa_simulada_27, cruzada_simulada_27)
+ directa_sim_29_norm, cruzada_sim_29_norm = normalize_with_global_reference(directa_simulada_29, cruzada_simulada_29)
+ directa_sim_31_norm, cruzada_sim_31_norm = normalize_with_global_reference(directa_simulada_31, cruzada_simulada_31)
+
+ directas_simuladas_db = {'deg': directa_simulada_27.convert_to_degree(min_deg=-180, max_deg=180), '2.7GHz': directa_sim_27_norm, '2.9GHz': directa_sim_29_norm, '3.1GHz': directa_sim_31_norm}
+ cruzadas_simuladas_db = {'deg': cruzada_simulada_27.convert_to_degree(min_deg=-180, max_deg=180), '2.7GHz': cruzada_sim_27_norm, '2.9GHz': cruzada_sim_29_norm, '3.1GHz': cruzada_sim_31_norm}
 
  directas_simuladas_db_norm = normalizar_ejes(directas_simuladas_db)
  cruzadas_simuladas_db_norm = normalizar_ejes(cruzadas_simuladas_db)
@@ -203,9 +244,8 @@ plt.show()
  plt.plot(cruzadas_simuladas_db_norm['deg'], cruzadas_simuladas_db_norm['3.1GHz'], 'k-', linewidth=2, label='3.1 GHz')
 
  plt.title('Diagramas de Radiación - Polarización Cruzada', fontsize=14)
- plt.ylim(-80, -30)
  plt.xlabel('Ángulo [deg]', fontsize=12)
- plt.ylabel('Potencia [dBi]', fontsize=12)
+ plt.ylabel('Potencia [dB]', fontsize=12)
  plt.grid(True, linestyle='--', alpha=0.7)
  plt.legend()
  plt.tight_layout()
@@ -231,9 +271,15 @@ plt.show()
 
  plt.title('Comparación Polarización Directa vs Cruzada', fontsize=14)
  plt.xlabel('Ángulo [deg]', fontsize=12)
- plt.ylabel('Potencia [dBi]', fontsize=12)
+ plt.ylabel('Potencia [dB]', fontsize=12)
  plt.grid(True, linestyle='--', alpha=0.7)
  plt.legend()
  plt.tight_layout()
  plt.savefig('./ploteos/completo_simulada.png',dpi=300)
  plt.show()
+
+# %%
+
+# %%
+
+# %%
