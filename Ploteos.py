@@ -14,19 +14,19 @@
 # ---
 
 # %% [markdown]
-# # Ploteos
-# Ploteo los datos pre-procesados de las mediciones
+# # Ploteos parte 2
+# Parte dos para que no quede tan largo
 
 # %%
 from scripts.sa_data import SAData, load_sa_data
 
 # %%
-directa_27 = load_sa_data('./Mediciones/directa_2.7GHz.DAT')
-directa_29 = load_sa_data('./Mediciones/directa_2.9GHz.DAT')
-directa_31 = load_sa_data('./Mediciones/directa_3.1GHz.DAT')
-cruzada_27 = load_sa_data('./Mediciones/cruzada_2.7GHz.DAT')
-cruzada_29 = load_sa_data('./Mediciones/cruzada_2.9GHz.DAT')
-cruzada_31 = load_sa_data('./Mediciones/cruzada_3.1GHz.DAT')
+directa_27 = load_sa_data('./mediciones/directa_2.7GHz.DAT')
+directa_29 = load_sa_data('./mediciones/directa_2.9GHz.DAT')
+directa_31 = load_sa_data('./mediciones/directa_3.1GHz.DAT')
+cruzada_27 = load_sa_data('./mediciones/cruzada_2.7GHz.DAT')
+cruzada_29 = load_sa_data('./mediciones/cruzada_2.9GHz.DAT')
+cruzada_31 = load_sa_data('./mediciones/cruzada_3.1GHz.DAT')
 
 # %%
 directa_27.plot_deg(mag='dBm', y_limits=(-80, -30), min_deg=-180, max_deg=180, savefig='Ploteos/directa_2.7GHz_dBm.png', title='Polarizacion directa 2.7GHz')

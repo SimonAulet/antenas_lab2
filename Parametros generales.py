@@ -27,6 +27,8 @@
 #
 # ### Directividad
 #
+# Esto me quedó dudoso porque estoy midiendo en un solo plano con lo cual no es realmente contra una antena isotrópica lo que estoy midiendo. No pongo en la entrega
+#
 # Se define como $\frac{U}{U_0}$. Para calcularla paso los datos de dBm a watts lineales así evito distorsión y calculo el promedio. Luego la distancia del máximo al promedio es la directividad
 #
 # - Linealizo: $\displaystyle P_i = 10^{(P_i - 30) / 10}$
@@ -41,6 +43,8 @@
 
 # %%
 from scripts.sa_data import SAData, load_sa_data
+import matplotlib.pyplot as plt
+import numpy as np
 
 # %%
 directa_medida_27 = load_sa_data('./mediciones/directa_2.7GHz.DAT')
@@ -252,27 +256,65 @@ plt.show()
 # %%
 # Cálculo de Relación Axial para todas las frecuencias
 print("=== Cálculo de Relación Axial ===")
-print("Relación Axial = max_directa - max_cruzada (en dBi)")
+print("Relación Axial = max_directa - cruzada_en_misma_posicion (en dB)")
 
 # Frecuencias medidas
 for freq in ['27', '29', '31']:
     directa = globals()[f'directa_medida_{freq}']
     cruzada = globals()[f'cruzada_medida_{freq}']
 
-    max_directa = np.max(directa.get_y1_data())
-    max_cruzada = np.max(cruzada.get_y1_data())
-    relacion_axial = max_directa - max_cruzada
+    # Obtener datos completos
+    y_directa = directa.get_y1_data()
+    y_cruzada = cruzada.get_y1_data()
+    x_directa = directa.get_x_data()
+    x_cruzada = cruzada.get_x_data()
 
-    print(f"{freq[0]+'.'+freq[1]} GHz: {relacion_axial:.2f} dB (Directa: {max_directa:.2f} dBm, Cruzada: {max_cruzada:.2f} dBm)")
+    # 1. Encontrar posición del máximo en directa
+    max_idx_directa = np.argmax(y_directa)
+    max_directa = y_directa[max_idx_directa]
+    pos_max_directa = x_directa[max_idx_directa]
+
+    # 2. Encontrar valor en cruzada en la misma posición
+    # Buscar el índice más cercano en cruzada a la posición del máximo en directa
+    idx_cruzada = np.argmin(np.abs(x_cruzada - pos_max_directa))
+    cruzada_en_misma_pos = y_cruzada[idx_cruzada]
+
+    # 3. Calcular relación axial
+    relacion_axial = max_directa - cruzada_en_misma_pos
+
+    print(f"{freq[0]+'.'+freq[1]} GHz: {relacion_axial:.2f} dB")
+    print(f"  - Directa: {max_directa:.2f} dBm en posición {pos_max_directa:.3f}")
+    print(f"  - Cruzada: {cruzada_en_misma_pos:.2f} dBm en misma posición")
 
 # %%
+y_directa = directa_medida_27.get_y1_data()
+
+# %%
+np.max(y_directa)
+
+# %% [markdown]
+# Para la simulada la extraigo del documento .txt usando el punto máximo en polarización directa y extrayendo la rel. axial para ese valor manualmente (viene especificado)
+
+# %%
+# Cálculo de Relación Axial para todas las frecuencias
+print("=== Cálculo de Relación Axial ===")
+print("Valores máximos de parámetros simulados")
+
+# Frecuencias simuladas
+print("\n--- Simulaciones ---")
 for freq in ['27', '29', '31']:
     directa = globals()[f'directa_simulada_{freq}']
-    cruzada = globals()[f'cruzada_simulada_{freq}']
 
-    max_directa = np.max(directa.get_y1_data())
-    max_cruzada = np.max(cruzada.get_y1_data())
-    relacion_axial = max_directa - max_cruzada
+    y_directa = directa.get_y1_data()
+
+    max_directa = np.max(y_directa)
+    print(f"  - Valor máximo directa a {freq[0]+'.'+freq[1]}: {max_directa:.5f}")
+
+# %% [markdown]
+# Buscando en los archivos txt tengo:
+# - $2.7\text{GHz}: 27.8$
+# - $2.9\text{GHz}: 26.27$
+# - $3.1\text{GHz}: 22.0$
 
 # %% [markdown]
 # ## Directividad
